@@ -138,7 +138,6 @@ public partial class ApplicationDbContext : DbContext
             entity.Property(e => e.LockoutUntilUtc).HasPrecision(0);
             entity.Property(e => e.NormalizedEmail).HasMaxLength(320);
             entity.Property(e => e.PasswordChangedAtUtc).HasPrecision(0);
-            entity.Property(e => e.PasswordHash).HasMaxLength(500);
             entity.Property(e => e.RowVersion)
                 .IsRowVersion()
                 .IsConcurrencyToken();

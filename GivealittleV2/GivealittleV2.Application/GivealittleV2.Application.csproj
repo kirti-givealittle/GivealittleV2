@@ -6,4 +6,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\GivealittleV2.Domain\GivealittleV2.Domain.csproj" />
+  </ItemGroup>
+
 </Project>

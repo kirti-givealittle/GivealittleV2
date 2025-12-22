@@ -11,8 +11,6 @@ public partial class AuthUser
 
     public string NormalizedEmail { get; set; } = null!;
 
-    public string PasswordHash { get; set; } = null!;
-
     public bool EmailConfirmed { get; set; }
 
     public bool IsActive { get; set; }

@@ -3,9 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.14.36414.22
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "GivealittleV2.Client", "givealittlev2.client\GivealittleV2.Client.esproj", "{7B996C83-B710-6B37-8F6C-DAE7C4328C29}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GivealittleV2.Server", "GivealittleV2.Server\GivealittleV2.Server.csproj", "{0CC9CB7E-5E4C-485A-9726-2F7A598C5A77}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GivealittleV2.API", "GivealittleV2.API\GivealittleV2.API.csproj", "{0CC9CB7E-5E4C-485A-9726-2F7A598C5A77}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GivealittleV2.Domain", "GivealittleV2.Domain\GivealittleV2.Domain.csproj", "{6DAF3D1D-3B1C-4417-B8A3-ED71091064BD}"
 EndProject
@@ -21,12 +19,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{7B996C83-B710-6B37-8F6C-DAE7C4328C29}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7B996C83-B710-6B37-8F6C-DAE7C4328C29}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7B996C83-B710-6B37-8F6C-DAE7C4328C29}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
-		{7B996C83-B710-6B37-8F6C-DAE7C4328C29}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7B996C83-B710-6B37-8F6C-DAE7C4328C29}.Release|Any CPU.Build.0 = Release|Any CPU
-		{7B996C83-B710-6B37-8F6C-DAE7C4328C29}.Release|Any CPU.Deploy.0 = Release|Any CPU
 		{0CC9CB7E-5E4C-485A-9726-2F7A598C5A77}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{0CC9CB7E-5E4C-485A-9726-2F7A598C5A77}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0CC9CB7E-5E4C-485A-9726-2F7A598C5A77}.Release|Any CPU.ActiveCfg = Release|Any CPU

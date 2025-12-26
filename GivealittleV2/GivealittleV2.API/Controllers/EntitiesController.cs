@@ -9,8 +9,12 @@ namespace GivealittleV2.API.Controllers
     [ApiController]
     public class EntitiesController : ControllerBase
     {
-        [HttpPost("draft")]
-        public async Task<ActionResult<CauseResponse>> Register(RegistrationDTO req)
-            => Ok(await _auth.RegisterAsync(req, Ip, UA));
+        public EntitiesController()
+        {
+            
+        }
+        //[HttpPost("draft")]
+        //public async Task<ActionResult<CauseResponse>> Register(RegistrationDTO req)
+        //    => Ok(await _auth.RegisterAsync(req, Ip, UA));
     }
 }

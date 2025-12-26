@@ -5,7 +5,7 @@ namespace GivealittleV2.Infrastructure.Persistence.Models;
 
 public partial class AuthLoginAudit
 {
-    public long AuthLoginAuditId { get; set; }
+    public Guid AuthLoginAuditId { get; set; }
 
     public DateTime OccurredAtUtc { get; set; }
 

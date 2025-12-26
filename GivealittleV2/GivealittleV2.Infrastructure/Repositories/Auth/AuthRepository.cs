@@ -1,24 +1,30 @@
-﻿using GivealittleV2.API.Auth.Interfaces;
+﻿using GivealittleV2.Application.Interfaces.Auth;
+using GivealittleV2.Application.Interfaces.Email;
+using GivealittleV2.Application.Interfaces.OTP;
 using GivealittleV2.Domain.Models.Auth;
 using GivealittleV2.Infrastructure.Persistence.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using System.Security.Cryptography;
 
-namespace GivealittleV2.API.Auth.Services
+namespace GivealittleV2.Infrastructure.Repositories.Auth
 {
-    public sealed class AuthService : IAuthService
+    public class AuthRepository : IAuthRepository
     {
         private readonly ApplicationDbContext _db;
-        private readonly ITokenService _tokens;
         private readonly IConfiguration _config;
+        private readonly ITokenService _tokens;
+        private readonly IOtpService otpService;
 
-        public AuthService(ApplicationDbContext db, IPasswordService passwords, ITokenService tokens, IConfiguration config)
+        public AuthRepository(ApplicationDbContext dbContext, IConfiguration configuration, ITokenService tokens, IOtpService _otpService)
         {
-            _db = db;
+            _db = dbContext;
+            _config = configuration;
             _tokens = tokens;
-            _config = config;
+            otpService = _otpService;
         }
 
-        public async Task<AuthResponseDTO> RegisterAsync(RegistrationDTO req, string? ip, string? ua)
+        public async Task<AuthResponseDTO> RegisterUserAsync(RegistrationDTO req, string? ip, string? ua)
         {
             var email = req.Email.Trim();
             var normalized = email.ToUpperInvariant();
@@ -27,7 +33,7 @@ namespace GivealittleV2.API.Auth.Services
 
             if (existingUser != null) { return existingUser; };
 
-            var entity= new Entity
+            var entity = new Persistence.Models.Entity
             {
                 IsIndividual = true,
                 EntityEmails = new List<EntityEmail>
@@ -37,24 +43,23 @@ namespace GivealittleV2.API.Auth.Services
                         EmailAddress = email,
                         IsDefault = true
                     }
-                }, 
+                },
                 Individual = new Individual
                 {
                     FirstName = req.FName.Trim(),
-                    LastName = req.LName.Trim()
+                    LastName = req.LName.Trim(),
+                    DateOfBirth = new DateTime(1900, 1, 1)
                 }
             };
 
             _db.Entities.Add(entity);
 
-            // Assign default role "User" (optional)
-
-
             await _db.SaveChangesAsync();
-            //return await IssueTokensAsync(user, ip, ua);
+
+            await otpService.CreateAndSendAsync(req.Email, req.FName, OtpPurpose.Registration);
 
             return new AuthResponseDTO(
-                authUserId : entity.Id,
+                authUserId: entity.Id,
                 AccessToken: "",
                 AccessTokenExpiresAtUtc: DateTime.MinValue,
                 RefreshToken: "",
@@ -66,26 +71,25 @@ namespace GivealittleV2.API.Auth.Services
         }
 
        
-
-        private AuthResponseDTO? CheckExistingUser(RegistrationDTO req)
+        public AuthResponseDTO? CheckExistingUser(RegistrationDTO req)
         {
             if (!string.IsNullOrEmpty(req.FName) &&
                 !string.IsNullOrEmpty(req.LName) && !string.IsNullOrEmpty(req.Email))
             {
                 var existing = _db.Individuals
                     .Where(i =>
-                     (i.IdNavigation != null &&
+                     i.IdNavigation != null &&
                      i.IdNavigation.EntityEmails
-                        .Any(em => em.EmailAddress.ToLower() == req.Email.Trim().ToLower()) == true) || 
-                    (i.FirstName == req.FName.Trim() &&
-                    i.LastName == req.LName.Trim()))
+                        .Any(em => em.EmailAddress.ToLower() == req.Email.Trim().ToLower()) == true ||
+                    i.FirstName == req.FName.Trim() &&
+                    i.LastName == req.LName.Trim())
                     .FirstOrDefault();
 
 
                 if (existing != null)
                 {
                     return new AuthResponseDTO(
-                        authUserId : existing.Id,
+                        authUserId: existing.Id,
                         AccessToken: "",
                         AccessTokenExpiresAtUtc: DateTime.MinValue,
                         RefreshToken: "",
@@ -103,7 +107,7 @@ namespace GivealittleV2.API.Auth.Services
             return null;
         }
 
-        public async Task<AuthResponseDTO> LoginAsync(LoginRequestDTO req, string? ip, string? ua)
+        public async Task<AuthResponseDTO> LoginUserAsync(LoginRequestDTO req, string? ip, string? ua)
         {
             var email = req.Email.Trim();
             var normalized = email.ToUpperInvariant();
@@ -162,7 +166,61 @@ namespace GivealittleV2.API.Auth.Services
             return await IssueTokensAsync(user, ip, ua);
         }
 
-        public async Task<AuthResponseDTO> RefreshAsync(string refreshToken, string? ip, string? ua)
+        private Task AddAuditAsync(Guid? authUserId, string? email, bool success, string eventType, string? reason, string? ip, string? ua)
+        {
+            _db.AuthLoginAudits.Add(new AuthLoginAudit
+            {
+                OccurredAtUtc = DateTime.UtcNow,
+                AuthUserId = authUserId,
+                Email = email,
+                Success = success,
+                EventType = eventType,
+                FailureReason = reason,
+                IpAddress = ip,
+                UserAgent = ua
+            });
+
+            return Task.CompletedTask;
+        }
+
+        private async Task<AuthResponseDTO> IssueTokensAsync(AuthUser user, string? ip, string? ua)
+        {
+            var roles = await GetRolesAsync(user.AuthUserId);
+
+            var (access, accessExp) = _tokens.CreateAccessToken(user.AuthUserId, user.Email, roles);
+
+            var refreshDays = int.Parse(_config["Jwt:RefreshTokenDays"]!);
+            var (raw, hash, refreshExp) = _tokens.CreateRefreshToken(refreshDays);
+
+            var rt = new AuthRefreshToken
+            {
+                RefreshTokenId = Guid.NewGuid(),
+                AuthUserId = user.AuthUserId,
+                TokenHash = hash,
+                CreatedAtUtc = DateTime.UtcNow,
+                ExpiresAtUtc = refreshExp,
+                CreatedByIp = ip,
+                UserAgent = ua
+            };
+
+            _db.AuthRefreshTokens.Add(rt);
+            await _db.SaveChangesAsync();
+
+            //return new AuthResponse(access, accessExp, raw);
+            return null;
+        }
+
+        private async Task<List<string>> GetRolesAsync(Guid authUserId)
+        {
+            //return await _db.AuthUserRoles
+            //    .Where(ur => ur.AuthUserId == authUserId)
+            //    .Join(_db.AuthRoles, ur => ur.AuthRoleId, r => r.AuthRoleId, (_, r) => r.Name)
+            //    .ToListAsync();
+
+            throw new NotImplementedException();
+        }
+
+        public async Task<AuthResponseDTO> RefreshUserAsync(string refreshToken, string? ip, string? ua)
         {
             var tokenHash = _tokens.Sha256(refreshToken);
 
@@ -207,7 +265,7 @@ namespace GivealittleV2.API.Auth.Services
             return null;
         }
 
-        public async Task LogoutAsync(string refreshToken, string? ip, string? ua)
+        public async Task LogoutUserAsync(string refreshToken, string? ip, string? ua)
         {
             var tokenHash = _tokens.Sha256(refreshToken);
 
@@ -226,57 +284,5 @@ namespace GivealittleV2.API.Auth.Services
             await _db.SaveChangesAsync();
         }
 
-        private async Task<AuthResponseDTO> IssueTokensAsync(AuthUser user, string? ip, string? ua)
-        {
-            var roles = await GetRolesAsync(user.AuthUserId);
-
-            var (access, accessExp) = _tokens.CreateAccessToken(user.AuthUserId, user.Email, roles);
-
-            var refreshDays = int.Parse(_config["Jwt:RefreshTokenDays"]!);
-            var (raw, hash, refreshExp) = _tokens.CreateRefreshToken(refreshDays);
-
-            var rt = new AuthRefreshToken
-            {
-                RefreshTokenId = Guid.NewGuid(),
-                AuthUserId = user.AuthUserId,
-                TokenHash = hash,
-                CreatedAtUtc = DateTime.UtcNow,
-                ExpiresAtUtc = refreshExp,
-                CreatedByIp = ip,
-                UserAgent = ua
-            };
-
-            _db.AuthRefreshTokens.Add(rt);
-            await _db.SaveChangesAsync();
-
-            //return new AuthResponse(access, accessExp, raw);
-            return null;
-        }
-
-        private async Task<List<string>> GetRolesAsync(Guid authUserId)
-        {
-            return await _db.AuthUserRoles
-                .Where(ur => ur.AuthUserId == authUserId)
-                .Join(_db.AuthRoles, ur => ur.AuthRoleId, r => r.AuthRoleId, (_, r) => r.Name)
-                .ToListAsync();
-        }
-
-        private Task AddAuditAsync(Guid? authUserId, string? email, bool success, string eventType, string? reason, string? ip, string? ua)
-        {
-            _db.AuthLoginAudits.Add(new AuthLoginAudit
-            {
-                OccurredAtUtc = DateTime.UtcNow,
-                AuthUserId = authUserId,
-                Email = email,
-                Success = success,
-                EventType = eventType,
-                FailureReason = reason,
-                IpAddress = ip,
-                UserAgent = ua
-            });
-
-            return Task.CompletedTask;
-        }
     }
 }
- 

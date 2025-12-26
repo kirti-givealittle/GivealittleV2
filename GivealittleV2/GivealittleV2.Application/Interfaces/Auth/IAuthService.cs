@@ -1,6 +1,6 @@
 ﻿using GivealittleV2.Domain.Models.Auth;
 
-namespace GivealittleV2.API.Auth.Interfaces
+namespace GivealittleV2.Application.Interfaces.Auth
 {
     public interface IAuthService
     {

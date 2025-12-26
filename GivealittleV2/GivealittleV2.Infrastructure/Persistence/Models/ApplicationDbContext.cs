@@ -19,8 +19,6 @@ public partial class ApplicationDbContext : DbContext
 
     public virtual DbSet<AuthUser> AuthUsers { get; set; }
 
-    public virtual DbSet<AuthUserRole> AuthUserRoles { get; set; }
-
     public virtual DbSet<BankAccount> BankAccounts { get; set; }
 
     public virtual DbSet<BankAccountDocument> BankAccountDocuments { get; set; }
@@ -55,6 +53,8 @@ public partial class ApplicationDbContext : DbContext
 
     public virtual DbSet<Individual> Individuals { get; set; }
 
+    public virtual DbSet<OtpRecord> OtpRecords { get; set; }
+
     public virtual DbSet<Role> Roles { get; set; }
 
     public virtual DbSet<School> Schools { get; set; }
@@ -69,10 +69,7 @@ public partial class ApplicationDbContext : DbContext
         {
             entity.ToTable("AuthLoginAudit");
 
-            entity.HasIndex(e => new { e.AuthUserId, e.OccurredAtUtc }, "IX_AuthLoginAudit_AuthUserId_OccurredAtUtc");
-
-            entity.HasIndex(e => e.OccurredAtUtc, "IX_AuthLoginAudit_OccurredAtUtc");
-
+            entity.Property(e => e.AuthLoginAuditId).ValueGeneratedNever();
             entity.Property(e => e.Email).HasMaxLength(320);
             entity.Property(e => e.EventType).HasMaxLength(50);
             entity.Property(e => e.FailureReason).HasMaxLength(200);
@@ -144,25 +141,6 @@ public partial class ApplicationDbContext : DbContext
             entity.Property(e => e.UpdatedAtUtc)
                 .HasPrecision(0)
                 .HasDefaultValueSql("(sysutcdatetime())");
-        });
-
-        modelBuilder.Entity<AuthUserRole>(entity =>
-        {
-            entity.HasKey(e => new { e.AuthUserId, e.AuthRoleId });
-
-            entity.HasIndex(e => e.AuthRoleId, "IX_AuthUserRoles_AuthRoleId");
-
-            entity.Property(e => e.AssignedAtUtc)
-                .HasPrecision(0)
-                .HasDefaultValueSql("(sysutcdatetime())");
-
-            entity.HasOne(d => d.AuthRole).WithMany(p => p.AuthUserRoles)
-                .HasForeignKey(d => d.AuthRoleId)
-                .HasConstraintName("FK_AuthUserRoles_AuthRoles");
-
-            entity.HasOne(d => d.AuthUser).WithMany(p => p.AuthUserRoles)
-                .HasForeignKey(d => d.AuthUserId)
-                .HasConstraintName("FK_AuthUserRoles_AuthUsers");
         });
 
         modelBuilder.Entity<BankAccount>(entity =>
@@ -466,6 +444,20 @@ public partial class ApplicationDbContext : DbContext
                 .HasForeignKey<Individual>(d => d.Id)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Individual_Entity");
+        });
+
+        modelBuilder.Entity<OtpRecord>(entity =>
+        {
+            entity.Property(e => e.Id).HasDefaultValueSql("(newsequentialid())");
+            entity.Property(e => e.CreatedAtUtc).HasPrecision(3);
+            entity.Property(e => e.ExpiresAtUtc).HasPrecision(3);
+            entity.Property(e => e.LockedUntilUtc).HasPrecision(3);
+            entity.Property(e => e.MaxAttempts).HasDefaultValue(5);
+            entity.Property(e => e.NextResendAllowedAtUtc).HasPrecision(3);
+            entity.Property(e => e.OtpHash).HasMaxLength(64);
+            entity.Property(e => e.Salt).HasMaxLength(32);
+            entity.Property(e => e.UsedAtUtc).HasPrecision(3);
+            entity.Property(e => e.UserEmail).HasMaxLength(256);
         });
 
         modelBuilder.Entity<Role>(entity =>

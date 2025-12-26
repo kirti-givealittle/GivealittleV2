@@ -1,10 +1,16 @@
-﻿using GivealittleV2.API.Auth.Interfaces;
+﻿using GivealittleV2.Application.Interfaces.Auth;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using System;
+using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
 using System.Security.Claims;
 using System.Security.Cryptography;
+using System.Text;
+using System.Threading.Tasks;
 
-namespace GivealittleV2.API.Auth.Services
+namespace GivealittleV2.Application.Services.Auth
 {
     public sealed class TokenService : ITokenService
     {

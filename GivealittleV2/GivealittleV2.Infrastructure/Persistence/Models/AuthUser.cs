@@ -30,6 +30,4 @@ public partial class AuthUser
     public byte[] RowVersion { get; set; } = null!;
 
     public virtual ICollection<AuthRefreshToken> AuthRefreshTokens { get; set; } = new List<AuthRefreshToken>();
-
-    public virtual ICollection<AuthUserRole> AuthUserRoles { get; set; } = new List<AuthUserRole>();
 }

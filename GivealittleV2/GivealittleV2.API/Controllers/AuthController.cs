@@ -1,4 +1,4 @@
-﻿using GivealittleV2.API.Auth.Interfaces;
+﻿using GivealittleV2.Application.Interfaces.Auth;
 using GivealittleV2.Domain.Models.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;

@@ -1,6 +1,13 @@
-using GivealittleV2.API.Auth.Interfaces;
-using GivealittleV2.API.Auth.Services;
+using GivealittleV2.Application.Interfaces.Auth;
+using GivealittleV2.Application.Interfaces.Email;
+using GivealittleV2.Application.Interfaces.OTP;
+using GivealittleV2.Application.Services.Auth;
+using GivealittleV2.Application.Services.Email;
+using GivealittleV2.Domain.Models.Email;
+using GivealittleV2.Domain.Models.OTP;
 using GivealittleV2.Infrastructure.Persistence.Models;
+using GivealittleV2.Infrastructure.Repositories.Auth;
+using GivealittleV2.Infrastructure.Repositories.OTP;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -20,8 +27,26 @@ if (string.IsNullOrEmpty(connectionString))
 {
     throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 }
-
 builder.Services.AddDbContext<ApplicationDbContext>(o => o.UseSqlServer(connectionString));
+
+builder.Services.Configure<EmailSettings>(
+    builder.Configuration.GetSection("EmailSettings"));
+
+builder.Services
+    .AddOptions<OtpOptions>()
+    .Bind(builder.Configuration.GetSection("OtpOptions"))
+    .Validate(o => !string.IsNullOrWhiteSpace(o.Pepper),
+        "OtpOptions.Pepper must be configured")
+    .ValidateOnStart();
+
+builder.Services.AddScoped<IEmailService, SmtpEmailService>();
+builder.Services.AddScoped<IEmailTemplateRenderer, FileEmailTemplateRenderer>();
+builder.Services.AddScoped<IOtpRepository, OtpRepository>();
+builder.Services.AddScoped<IOtpService, OtpService>();
+
+
+
+
 
 var jwt = builder.Configuration.GetSection("Jwt");
 var key = Encoding.UTF8.GetBytes(jwt["Key"]!);
@@ -47,8 +72,8 @@ builder.Services
     });
 
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 
-builder.Services.AddSingleton<IPasswordService, PasswordService>();
 builder.Services.AddSingleton<ITokenService, TokenService>();
 
 builder.Services.AddEndpointsApiExplorer();

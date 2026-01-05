@@ -6,5 +6,5 @@
     string LName,
     List<string> Emails,
     bool IsExistingUser,
-    Guid authUserId
+    Guid UserId
     );

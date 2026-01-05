@@ -1,7 +1,7 @@
 ﻿using GivealittleV2.Application.Interfaces.Auth;
 using GivealittleV2.Application.Interfaces.Email;
 using GivealittleV2.Application.Interfaces.OTP;
-using GivealittleV2.Domain.Models.Auth;
+using GivealittleV2.Domain.Models.Auth.DTOs;
 using GivealittleV2.Infrastructure.Persistence.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -59,7 +59,7 @@ namespace GivealittleV2.Infrastructure.Repositories.Auth
             await otpService.CreateAndSendAsync(req.Email, req.FName, OtpPurpose.Registration);
 
             return new AuthResponseDTO(
-                authUserId: entity.Id,
+                UserId: entity.Id,
                 AccessToken: "",
                 AccessTokenExpiresAtUtc: DateTime.MinValue,
                 RefreshToken: "",
@@ -89,7 +89,7 @@ namespace GivealittleV2.Infrastructure.Repositories.Auth
                 if (existing != null)
                 {
                     return new AuthResponseDTO(
-                        authUserId: existing.Id,
+                        UserId: existing.Id,
                         AccessToken: "",
                         AccessTokenExpiresAtUtc: DateTime.MinValue,
                         RefreshToken: "",

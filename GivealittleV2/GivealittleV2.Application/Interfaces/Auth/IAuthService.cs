@@ -1,4 +1,4 @@
-﻿using GivealittleV2.Domain.Models.Auth;
+﻿using GivealittleV2.Domain.Models.Auth.DTOs;
 
 namespace GivealittleV2.Application.Interfaces.Auth
 {

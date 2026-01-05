@@ -1,10 +1,10 @@
 ﻿using GivealittleV2.Application.Interfaces.Auth;
-using GivealittleV2.Domain.Models.Auth;
+using GivealittleV2.Domain.Models.Auth.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
-namespace GivealittleV2.API.Controllers
+namespace GivealittleV2.API.Controllers.Auth
 {
     [ApiController]
     [Route("api/auth")]
@@ -35,18 +35,4 @@ namespace GivealittleV2.API.Controllers
             return NoContent();
         }
     }
-
-
-    //[ApiController]
-    //[Route("api/me")]
-    //public class MeController : ControllerBase
-    //{
-    //    [HttpGet]
-    //    [Authorize]
-    //    public IActionResult Get() => Ok(new { message = "You are authenticated" });
-
-    //    [HttpGet("admin")]
-    //    [Authorize(Roles = "Admin")]
-    //    public IActionResult Admin() => Ok(new { message = "You are admin" });
-    //}
 }

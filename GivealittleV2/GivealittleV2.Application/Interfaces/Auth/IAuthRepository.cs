@@ -1,4 +1,4 @@
-﻿using GivealittleV2.Domain.Models.Auth;
+﻿using GivealittleV2.Domain.Models.Auth.DTOs;
 using System;
 using System.Collections.Generic;
 using System.Linq;

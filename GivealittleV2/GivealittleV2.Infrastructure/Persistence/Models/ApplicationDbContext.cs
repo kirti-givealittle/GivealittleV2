@@ -228,7 +228,7 @@ public partial class ApplicationDbContext : DbContext
             entity.ToTable("Entity");
 
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
+                .HasDefaultValueSql("(1())")
                 .HasColumnName("ID");
             entity.Property(e => e.Irdnumber)
                 .HasMaxLength(12)
@@ -298,7 +298,7 @@ public partial class ApplicationDbContext : DbContext
             entity.ToTable("EntityEmail");
 
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
+                .HasDefaultValueSql("(newsequentialid())")
                 .HasColumnName("ID");
             entity.Property(e => e.EmailAddress).HasMaxLength(50);
             entity.Property(e => e.EntityId).HasColumnName("EntityID");
@@ -433,7 +433,7 @@ public partial class ApplicationDbContext : DbContext
             entity.ToTable("Individual");
 
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
+                .HasDefaultValueSql("(newsequentialid())")
                 .HasColumnName("ID");
             entity.Property(e => e.DateOfBirth).HasColumnType("datetime");
             entity.Property(e => e.FirstName).HasMaxLength(50);

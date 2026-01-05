@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace GivealittleV2.Domain.Models.OTP
+namespace GivealittleV2.Domain.Models.OTP.DTOs
 {
     public class OtpValidationRequestDTO
     {

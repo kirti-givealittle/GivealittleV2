@@ -3,7 +3,7 @@ using GivealittleV2.Domain.Models.Cause;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
-namespace GivealittleV2.API.Controllers
+namespace GivealittleV2.API.Controllers.Entities
 {
     [Route("api/[controller]")]
     [ApiController]

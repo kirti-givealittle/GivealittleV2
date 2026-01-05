@@ -1,5 +1,5 @@
 ﻿using GivealittleV2.Application.Interfaces.OTP;
-using GivealittleV2.Domain.Models.OTP;
+using GivealittleV2.Domain.Models.OTP.DTOs;
 using Microsoft.AspNetCore.Mvc;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
@@ -8,10 +8,10 @@ namespace GivealittleV2.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class ValuesController : ControllerBase
+    public class TestController : ControllerBase
     {
         private readonly IOtpService otpService;
-        public ValuesController(IOtpService _otpService)
+        public TestController(IOtpService _otpService)
         {
             otpService = _otpService;
         }

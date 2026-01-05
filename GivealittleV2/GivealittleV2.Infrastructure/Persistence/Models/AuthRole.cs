@@ -12,6 +12,4 @@ public partial class AuthRole
     public string NormalizedName { get; set; } = null!;
 
     public DateTime CreatedAtUtc { get; set; }
-
-    public virtual ICollection<AuthUserRole> AuthUserRoles { get; set; } = new List<AuthUserRole>();
 }

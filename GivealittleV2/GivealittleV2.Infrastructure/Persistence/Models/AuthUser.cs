@@ -11,8 +11,6 @@ public partial class AuthUser
 
     public string NormalizedEmail { get; set; } = null!;
 
-    public string PasswordHash { get; set; } = null!;
-
     public bool EmailConfirmed { get; set; }
 
     public bool IsActive { get; set; }
@@ -32,6 +30,4 @@ public partial class AuthUser
     public byte[] RowVersion { get; set; } = null!;
 
     public virtual ICollection<AuthRefreshToken> AuthRefreshTokens { get; set; } = new List<AuthRefreshToken>();
-
-    public virtual ICollection<AuthUserRole> AuthUserRoles { get; set; } = new List<AuthUserRole>();
 }

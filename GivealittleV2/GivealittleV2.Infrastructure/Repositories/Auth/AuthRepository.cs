@@ -80,7 +80,7 @@ namespace GivealittleV2.Infrastructure.Repositories.Auth
                     .Where(i =>
                      i.IdNavigation != null &&
                      i.IdNavigation.EntityEmails
-                        .Any(em => em.EmailAddress.ToLower() == req.Email.Trim().ToLower()) == true ||
+                        .Any(em => em.EmailAddress.ToLower() == req.Email.Trim().ToLower()) == true &&
                     i.FirstName == req.FName.Trim() &&
                     i.LastName == req.LName.Trim())
                     .FirstOrDefault();

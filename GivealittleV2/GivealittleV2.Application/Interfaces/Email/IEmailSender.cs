@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 
 namespace GivealittleV2.Application.Interfaces.Email
 {
-    public interface IEmailTemplateRenderer
+    public interface IEmailSender
     {
-        string Render(string template, IReadOnlyDictionary<string, object?> model);
+        Task SendAsync(EmailSendRequestDTO req);
     }
 }

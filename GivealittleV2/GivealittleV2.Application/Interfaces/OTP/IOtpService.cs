@@ -15,7 +15,7 @@ namespace GivealittleV2.Application.Interfaces.OTP
             OtpPurpose purpose);
 
         Task<OtpValidationResult> ValidateAsync(
-            string userKey,
+            string userEmail,
             OtpPurpose purpose,
             string otp);
     }

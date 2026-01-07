@@ -17,20 +17,21 @@ namespace GivealittleV2.Infrastructure.Repositories.OTP
     {
         private readonly ApplicationDbContext _db;
         private readonly OtpOptions _options;
-        private readonly IEmailService _sender;
+        private readonly IEmailSender _sender;
+        private readonly IEmailDtoProvider emailDtoProvider;
 
-        public OtpRepository(ApplicationDbContext db, IOptions<OtpOptions> options, IEmailService sender)
+        public OtpRepository(ApplicationDbContext db, IOptions<OtpOptions> options, IEmailSender sender, IEmailDtoProvider _emailDtoProvider)
         {
             _db = db;
             _options = options.Value;
             _sender = sender;
+            emailDtoProvider = _emailDtoProvider;
         }
 
         public async Task<OtpCreateResult> CreateAndSendOTPAsync(string otp,string userEmail,string userFName, OtpPurpose purpose)
         {
             var now = DateTime.UtcNow;
 
-            // One active OTP per user+purpose; enforce resend cooldown
             var existing = await GetActiveAsync(userEmail, purpose);
             if (existing is not null)
             {
@@ -42,7 +43,6 @@ namespace GivealittleV2.Infrastructure.Repositories.OTP
                     }
                 }
             }
-
 
 
             var (hash, salt) = OtpHashing.HashOtp(otp, _options.Pepper);
@@ -64,16 +64,35 @@ namespace GivealittleV2.Infrastructure.Repositories.OTP
 
             await UpsertAsync(record);
 
-            // Send via your email client (HTML template etc.)
-            var subject = "Your verification code";
-
-            await _sender.SendAsync(
-                to: userEmail,
-                subject: subject,
-                body: await _sender.RenderOTPTemplate(userFName, otp, _options.ExpiryMinutes),
-                isHtml: true);
+            var req = new EmailSendRequestDTO(
+                userEmail,
+                userFName,
+                GetEmailTemplateKey(purpose), 
+                emailDtoProvider.GetEmailDto(new OtpEmailDto(
+                    otp, 
+                    userFName, 
+                    purpose.ToString(), 
+                    _options.ExpiryMinutes, 
+                    _db.GlobalConfigs.Where(x => x.Key == "SYSTEM_EMAIL").Select(x => x.Value).FirstOrDefault() ?? "",
+                    userEmail
+                    )));
+            await _sender.SendAsync(req);
 
             return new OtpCreateResult(record.Id, record.ExpiresAtUtc, record.NextResendAllowedAtUtc);
+        }
+
+        private string GetEmailTemplateKey(OtpPurpose purpose)
+        {
+            switch (purpose)
+            {
+                case OtpPurpose.Login:
+                    return "OTP_Login";
+                case OtpPurpose.Registration:
+                    return "OTP_ACCOUNT_REGISTRATION_WITH_VERIFICATION_LINK";
+                case OtpPurpose.PasswordReset:
+                    return "OTP_PASSWORD_RESET";
+                default: throw new ArgumentOutOfRangeException(nameof(purpose), purpose, "Unsupported OTP purpose.");
+            }
         }
 
         /// <summary>
@@ -126,11 +145,11 @@ namespace GivealittleV2.Infrastructure.Repositories.OTP
             await _db.SaveChangesAsync();
         }
 
-        public async Task<OtpValidationResult> ValidateOTPAsync(string userKey, OtpPurpose purpose, string otp)
+        public async Task<OtpValidationResult> ValidateOTPAsync(string userEmail, OtpPurpose purpose, string otp)
         {
             var now = DateTime.UtcNow;
 
-            var record = await GetActiveAsync(userKey, purpose);
+            var record = await GetActiveAsync(userEmail, purpose);
             if (record is null)
                 return new OtpValidationResult(false, "No active OTP found.");
 
@@ -164,6 +183,12 @@ namespace GivealittleV2.Infrastructure.Repositories.OTP
             }
 
             await MarkUsedAsync(record);
+            var usermail = _db.EntityEmails.Where(x => x.EmailAddress == userEmail).FirstOrDefault();
+            if (usermail != null)
+            {
+                usermail.IsVerified = true;
+                await _db.SaveChangesAsync();
+            }
             return new OtpValidationResult(true);
         }
     }

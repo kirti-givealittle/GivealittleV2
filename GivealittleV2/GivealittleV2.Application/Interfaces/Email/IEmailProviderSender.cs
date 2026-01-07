@@ -6,8 +6,9 @@ using System.Threading.Tasks;
 
 namespace GivealittleV2.Application.Interfaces.Email
 {
-    public interface IEmailTemplateRenderer
+    public interface IEmailProviderSender
     {
-        string Render(string template, IReadOnlyDictionary<string, object?> model);
+        string ProviderKey { get; } // 'GMAIL' or 'MSGRAPH'
+        Task SendAsync(ProviderSendContext ctx);
     }
 }

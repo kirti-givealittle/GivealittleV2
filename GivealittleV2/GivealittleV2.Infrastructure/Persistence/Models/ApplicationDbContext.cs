@@ -17,8 +17,6 @@ public partial class ApplicationDbContext : DbContext
 
     public virtual DbSet<AuthRole> AuthRoles { get; set; }
 
-    public virtual DbSet<AuthUser> AuthUsers { get; set; }
-
     public virtual DbSet<BankAccount> BankAccounts { get; set; }
 
     public virtual DbSet<BankAccountDocument> BankAccountDocuments { get; set; }
@@ -77,7 +75,7 @@ public partial class ApplicationDbContext : DbContext
         {
             entity.ToTable("AuthLoginAudit");
 
-            entity.Property(e => e.AuthLoginAuditId).ValueGeneratedNever();
+            entity.Property(e => e.AuthLoginAuditId).HasDefaultValueSql("(newsequentialid())");
             entity.Property(e => e.Email).HasMaxLength(320);
             entity.Property(e => e.EventType).HasMaxLength(50);
             entity.Property(e => e.FailureReason).HasMaxLength(200);
@@ -92,12 +90,6 @@ public partial class ApplicationDbContext : DbContext
         {
             entity.HasKey(e => e.RefreshTokenId);
 
-            entity.HasIndex(e => new { e.AuthUserId, e.ExpiresAtUtc }, "IX_AuthRefreshTokens_AuthUserId_ExpiresAtUtc");
-
-            entity.HasIndex(e => new { e.AuthUserId, e.RevokedAtUtc }, "IX_AuthRefreshTokens_AuthUserId_RevokedAtUtc");
-
-            entity.HasIndex(e => e.TokenHash, "UX_AuthRefreshTokens_TokenHash").IsUnique();
-
             entity.Property(e => e.RefreshTokenId).ValueGeneratedNever();
             entity.Property(e => e.CreatedAtUtc)
                 .HasPrecision(0)
@@ -110,11 +102,8 @@ public partial class ApplicationDbContext : DbContext
 
             entity.HasOne(d => d.AuthUser).WithMany(p => p.AuthRefreshTokens)
                 .HasForeignKey(d => d.AuthUserId)
-                .HasConstraintName("FK_AuthRefreshTokens_AuthUsers");
-
-            entity.HasOne(d => d.ReplacedByRefreshToken).WithMany(p => p.InverseReplacedByRefreshToken)
-                .HasForeignKey(d => d.ReplacedByRefreshTokenId)
-                .HasConstraintName("FK_AuthRefreshTokens_ReplacedBy");
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_AuthRefreshTokens_EntityEmail");
         });
 
         modelBuilder.Entity<AuthRole>(entity =>
@@ -127,28 +116,6 @@ public partial class ApplicationDbContext : DbContext
                 .HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.Name).HasMaxLength(128);
             entity.Property(e => e.NormalizedName).HasMaxLength(128);
-        });
-
-        modelBuilder.Entity<AuthUser>(entity =>
-        {
-            entity.HasIndex(e => e.NormalizedEmail, "UX_AuthUsers_NormalizedEmail").IsUnique();
-
-            entity.Property(e => e.AuthUserId).ValueGeneratedNever();
-            entity.Property(e => e.CreatedAtUtc)
-                .HasPrecision(0)
-                .HasDefaultValueSql("(sysutcdatetime())");
-            entity.Property(e => e.Email).HasMaxLength(320);
-            entity.Property(e => e.IsActive).HasDefaultValue(true);
-            entity.Property(e => e.LastLoginAtUtc).HasPrecision(0);
-            entity.Property(e => e.LockoutUntilUtc).HasPrecision(0);
-            entity.Property(e => e.NormalizedEmail).HasMaxLength(320);
-            entity.Property(e => e.PasswordChangedAtUtc).HasPrecision(0);
-            entity.Property(e => e.RowVersion)
-                .IsRowVersion()
-                .IsConcurrencyToken();
-            entity.Property(e => e.UpdatedAtUtc)
-                .HasPrecision(0)
-                .HasDefaultValueSql("(sysutcdatetime())");
         });
 
         modelBuilder.Entity<BankAccount>(entity =>

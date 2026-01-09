@@ -2,6 +2,7 @@
 using GivealittleV2.Domain.Models.OTP;
 using Microsoft.Extensions.Options;
 using System.Security.Cryptography;
+using static System.Net.WebRequestMethods;
 
 public sealed class OtpService : IOtpService
 {
@@ -37,5 +38,30 @@ public sealed class OtpService : IOtpService
         return value.ToString("D6");
     }
 
-    
+    public async Task<OtpCreateResult> GenerateAndSendTokenEmail(string email, string fName, OtpPurpose purpose)
+    {
+        var token = GenerateToken();
+        var result = await _store.CreateAndSendOTPAsync(token, email, fName, purpose);
+        if (result is null)
+            throw new InvalidOperationException("Failed to create OTP record.");
+        return result;
+    }
+
+    public static string GenerateToken(int byteLength = 32)
+    {
+        var bytes = RandomNumberGenerator.GetBytes(byteLength);
+
+        // Base64Url encode (URL-safe, no + / =)
+        var token = Convert.ToBase64String(bytes)
+            .Replace("+", "-")
+            .Replace("/", "_")
+            .TrimEnd('=');
+
+        return token; 
+    }
+
+    public Task ValidateAsync(OtpPurpose purpose, string otp)
+    {
+        throw new NotImplementedException();
+    }
 }

@@ -1,4 +1,5 @@
 ﻿public sealed record OtpValidationResult(
     bool IsValid,
-    string? FailureReason = null
+    string? FailureReason = null,
+    string? HtmlContent = null
 );

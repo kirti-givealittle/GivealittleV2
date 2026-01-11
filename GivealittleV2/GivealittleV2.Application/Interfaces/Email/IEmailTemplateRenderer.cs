@@ -8,9 +8,6 @@ namespace GivealittleV2.Application.Interfaces.Email
 {
     public interface IEmailTemplateRenderer
     {
-        Task<string> RenderAsync(
-            string templateName,
-            IReadOnlyDictionary<string, object?> model,
-            CancellationToken ct = default);
+        string Render(string template, IReadOnlyDictionary<string, object?> model);
     }
 }

@@ -13,10 +13,12 @@ namespace GivealittleV2.Application.Interfaces.OTP
             string userEmail,
             string userFName,
             OtpPurpose purpose);
-
+        Task<OtpCreateResult> GenerateAndSendTokenEmail(string email, string fName, OtpPurpose registration);
         Task<OtpValidationResult> ValidateAsync(
-            string userKey,
+            string userEmail,
             OtpPurpose purpose,
             string otp);
+
+        Task ValidateAsync(OtpPurpose purpose, string otp);
     }
 }

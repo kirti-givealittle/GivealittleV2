@@ -23,9 +23,5 @@ public partial class AuthRefreshToken
 
     public string? UserAgent { get; set; }
 
-    public virtual AuthUser AuthUser { get; set; } = null!;
-
-    public virtual ICollection<AuthRefreshToken> InverseReplacedByRefreshToken { get; set; } = new List<AuthRefreshToken>();
-
-    public virtual AuthRefreshToken? ReplacedByRefreshToken { get; set; }
+    public virtual EntityEmail AuthUser { get; set; } = null!;
 }

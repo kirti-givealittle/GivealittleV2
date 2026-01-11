@@ -18,11 +18,28 @@ namespace GivealittleV2.API.Controllers.Auth
 
         [HttpPost("register")]
         public async Task<ActionResult<AuthResponseDTO>> Register(RegistrationDTO req)
-            => Ok(await _auth.RegisterAsync(req, Ip, UA));
+        {
+            try
+            {
+                return Ok(await _auth.RegisterAsync(req, Ip, UA));
+            }
+            catch (Exception ex)
+            {
+
+                throw;
+            }
+        }
+        
 
         [HttpPost("login")]
         public async Task<ActionResult<AuthResponseDTO>> Login(LoginRequestDTO req)
             => Ok(await _auth.LoginAsync(req, Ip, UA));
+
+        [HttpPost("loginVerify")]
+        public async Task<ActionResult<AuthResponseDTO>> LoginVerify(LoginVerifyOtpDTO req)
+            => Ok(await _auth.LoginVerifyAsync(req, Ip, UA));
+
+
 
         [HttpPost("refresh")]
         public async Task<ActionResult<AuthResponseDTO>> Refresh(RefreshRequestDTO req)

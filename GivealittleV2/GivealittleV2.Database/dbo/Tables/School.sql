@@ -1,0 +1,6 @@
+﻿CREATE TABLE [dbo].[School] (
+    [ID] UNIQUEIDENTIFIER NOT NULL,
+    CONSTRAINT [PK_School] PRIMARY KEY CLUSTERED ([ID] ASC),
+    CONSTRAINT [FK_School_Entity] FOREIGN KEY ([ID]) REFERENCES [dbo].[Entity] ([ID])
+);
+

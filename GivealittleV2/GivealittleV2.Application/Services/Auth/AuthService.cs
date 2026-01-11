@@ -18,6 +18,10 @@ namespace GivealittleV2.Application.Services.Auth
             return await authRepository.RegisterUserAsync(req, ip, ua);
         }
 
+        public Task<AuthResponseDTO> LoginVerifyAsync(LoginVerifyOtpDTO req, string? ip, string? ua){
+            return authRepository.LoginVerifyAsync(req, ip, ua);
+        }
+
         public async Task<AuthResponseDTO> LoginAsync(LoginRequestDTO req, string? ip, string? ua)
         {
             return await authRepository.LoginUserAsync(req, ip, ua);

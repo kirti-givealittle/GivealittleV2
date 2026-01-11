@@ -1,0 +1,6 @@
+﻿CREATE TABLE [dbo].[Group] (
+    [ID] UNIQUEIDENTIFIER NOT NULL,
+    CONSTRAINT [PK_Group] PRIMARY KEY CLUSTERED ([ID] ASC),
+    CONSTRAINT [FK_Group_Entity] FOREIGN KEY ([ID]) REFERENCES [dbo].[Entity] ([ID])
+);
+

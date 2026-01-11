@@ -17,20 +17,21 @@ namespace GivealittleV2.Infrastructure.Repositories.OTP
     {
         private readonly ApplicationDbContext _db;
         private readonly OtpOptions _options;
-        private readonly IEmailService _sender;
+        private readonly IEmailSender _sender;
+        private readonly IEmailDtoProvider emailDtoProvider;
 
-        public OtpRepository(ApplicationDbContext db, IOptions<OtpOptions> options, IEmailService sender)
+        public OtpRepository(ApplicationDbContext db, IOptions<OtpOptions> options, IEmailSender sender, IEmailDtoProvider _emailDtoProvider)
         {
             _db = db;
             _options = options.Value;
             _sender = sender;
+            emailDtoProvider = _emailDtoProvider;
         }
 
         public async Task<OtpCreateResult> CreateAndSendOTPAsync(string otp,string userEmail,string userFName, OtpPurpose purpose)
         {
             var now = DateTime.UtcNow;
 
-            // One active OTP per user+purpose; enforce resend cooldown
             var existing = await GetActiveAsync(userEmail, purpose);
             if (existing is not null)
             {
@@ -42,7 +43,6 @@ namespace GivealittleV2.Infrastructure.Repositories.OTP
                     }
                 }
             }
-
 
 
             var (hash, salt) = OtpHashing.HashOtp(otp, _options.Pepper);
@@ -64,16 +64,35 @@ namespace GivealittleV2.Infrastructure.Repositories.OTP
 
             await UpsertAsync(record);
 
-            // Send via your email client (HTML template etc.)
-            var subject = "Your verification code";
-
-            await _sender.SendAsync(
-                to: userEmail,
-                subject: subject,
-                body: await _sender.RenderOTPTemplate(userFName, otp, _options.ExpiryMinutes),
-                isHtml: true);
+            var req = new EmailSendRequestDTO(
+                userEmail,
+                userFName,
+                GetEmailTemplateKey(purpose), 
+                emailDtoProvider.GetEmailDto(new OtpEmailDto(
+                    otp, 
+                    userFName, 
+                    purpose.ToString(), 
+                    _options.ExpiryMinutes, 
+                    _db.GlobalConfigs.Where(x => x.Key == "SYSTEM_EMAIL").Select(x => x.Value).FirstOrDefault() ?? "",
+                    purpose == OtpPurpose.Registration ? record.Id.ToString() : userEmail
+                    )));
+            await _sender.SendAsync(req);
 
             return new OtpCreateResult(record.Id, record.ExpiresAtUtc, record.NextResendAllowedAtUtc);
+        }
+
+        private string GetEmailTemplateKey(OtpPurpose purpose)
+        {
+            switch (purpose)
+            {
+                case OtpPurpose.Login:
+                    return "OTP_VERIFICATION";
+                case OtpPurpose.Registration:
+                    return "OTP_ACCOUNT_REGISTRATION_WITH_VERIFICATION_LINK";
+                case OtpPurpose.PasswordReset:
+                    return "OTP_PASSWORD_RESET";
+                default: throw new ArgumentOutOfRangeException(nameof(purpose), purpose, "Unsupported OTP purpose.");
+            }
         }
 
         /// <summary>
@@ -84,7 +103,10 @@ namespace GivealittleV2.Infrastructure.Repositories.OTP
             OtpPurpose purpose)
         {
             var now = DateTime.UtcNow;
-
+            if(purpose == OtpPurpose.Registration)
+            {
+                userKey = _db.OtpRecords.Where(x => x.Id.ToString() == userKey).Select(x => x.UserEmail).FirstOrDefault() ?? "";
+            }
             var otpObj = await _db.OtpRecords
                 .Where(x =>
                     x.UserEmail == userKey &&
@@ -126,30 +148,36 @@ namespace GivealittleV2.Infrastructure.Repositories.OTP
             await _db.SaveChangesAsync();
         }
 
-        public async Task<OtpValidationResult> ValidateOTPAsync(string userKey, OtpPurpose purpose, string otp)
+        public async Task<OtpValidationResult> ValidateOTPAsync(string userEmail, OtpPurpose purpose, string otp)
         {
             var now = DateTime.UtcNow;
 
-            var record = await GetActiveAsync(userKey, purpose);
+            var record = await GetActiveAsync(userEmail, purpose);
             if (record is null)
-                return new OtpValidationResult(false, "No active OTP found.");
-
-            if (record.UsedAtUtc is not null)
             {
-                await IncrementFailedAttemptAsync(record);
-                return new OtpValidationResult(false, "OTP already used.");
+                return new OtpValidationResult(false, "No active OTP found.", _db.EmailTemplates
+                    .Where(x => x.TemplateKey == "OTP_VERIFICATION_FAILED")
+                    .Select(x => x.BodyTemplate)
+                    .FirstOrDefault());
             }
+
                 
 
             if (record.ExpiresAtUtc <= now)
             {
                 await IncrementFailedAttemptAsync(record);
-                return new OtpValidationResult(false, "OTP expired.");
+                return new OtpValidationResult(false, "OTP expired.", _db.EmailTemplates
+                    .Where(x => x.TemplateKey == "OTP_VERIFICATION_FAILED")
+                    .Select(x => x.BodyTemplate)
+                    .FirstOrDefault());
             }
                 
 
             if (record.LockedUntilUtc.HasValue && record.LockedUntilUtc.Value > now)
-                return new OtpValidationResult(false, "Too many attempts. Try again later.");
+                return new OtpValidationResult(false, "Too many attempts. Try again later.", _db.EmailTemplates
+                    .Where(x => x.TemplateKey == "OTP_VERIFICATION_FAILED")
+                    .Select(x => x.BodyTemplate)
+                    .FirstOrDefault());
 
             // Hash the provided OTP using stored salt + pepper and compare
             var attemptedHash = OtpHashing.HashOtpWithSalt(otp, _options.Pepper, record.Salt);
@@ -160,11 +188,36 @@ namespace GivealittleV2.Infrastructure.Repositories.OTP
             {
                 await IncrementFailedAttemptAsync(record);
 
-                return new OtpValidationResult(false, "Invalid OTP.");
+                return new OtpValidationResult(false, "Invalid OTP.", _db.EmailTemplates
+                    .Where(x => x.TemplateKey == "OTP_VERIFICATION_FAILED")
+                    .Select(x => x.BodyTemplate)
+                    .FirstOrDefault());
             }
 
             await MarkUsedAsync(record);
-            return new OtpValidationResult(true);
+            var usermail = _db.EntityEmails.Where(x => x.EmailAddress == userEmail).FirstOrDefault();
+            if (usermail != null)
+            {
+                usermail.IsVerified = true;
+                await _db.SaveChangesAsync();
+            }
+
+            RemoveOtpRecord(record);
+            // With this line:
+            return new OtpValidationResult(
+                true,
+                null,
+                _db.EmailTemplates
+                    .Where(x => x.TemplateKey == "OTP_VERIFIED")
+                    .Select(x => x.BodyTemplate)
+                    .FirstOrDefault()
+            );
+        }
+
+        private void RemoveOtpRecord(OtpRecord record)
+        {
+             _db.OtpRecords.Remove(record);
+            _db.SaveChanges();
         }
     }
 }

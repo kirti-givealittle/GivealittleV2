@@ -17,8 +17,6 @@ public partial class ApplicationDbContext : DbContext
 
     public virtual DbSet<AuthRole> AuthRoles { get; set; }
 
-    public virtual DbSet<AuthUser> AuthUsers { get; set; }
-
     public virtual DbSet<BankAccount> BankAccounts { get; set; }
 
     public virtual DbSet<BankAccountDocument> BankAccountDocuments { get; set; }
@@ -28,6 +26,8 @@ public partial class ApplicationDbContext : DbContext
     public virtual DbSet<Cause> Causes { get; set; }
 
     public virtual DbSet<Charity> Charities { get; set; }
+
+    public virtual DbSet<EmailTemplate> EmailTemplates { get; set; }
 
     public virtual DbSet<Entity> Entities { get; set; }
 
@@ -49,9 +49,15 @@ public partial class ApplicationDbContext : DbContext
 
     public virtual DbSet<EntityRole> EntityRoles { get; set; }
 
+    public virtual DbSet<GlobalConfig> GlobalConfigs { get; set; }
+
+    public virtual DbSet<GmailOauthConfig> GmailOauthConfigs { get; set; }
+
     public virtual DbSet<Group> Groups { get; set; }
 
     public virtual DbSet<Individual> Individuals { get; set; }
+
+    public virtual DbSet<MsGraphOauthConfig> MsGraphOauthConfigs { get; set; }
 
     public virtual DbSet<OtpRecord> OtpRecords { get; set; }
 
@@ -69,7 +75,7 @@ public partial class ApplicationDbContext : DbContext
         {
             entity.ToTable("AuthLoginAudit");
 
-            entity.Property(e => e.AuthLoginAuditId).ValueGeneratedNever();
+            entity.Property(e => e.AuthLoginAuditId).HasDefaultValueSql("(newsequentialid())");
             entity.Property(e => e.Email).HasMaxLength(320);
             entity.Property(e => e.EventType).HasMaxLength(50);
             entity.Property(e => e.FailureReason).HasMaxLength(200);
@@ -84,12 +90,6 @@ public partial class ApplicationDbContext : DbContext
         {
             entity.HasKey(e => e.RefreshTokenId);
 
-            entity.HasIndex(e => new { e.AuthUserId, e.ExpiresAtUtc }, "IX_AuthRefreshTokens_AuthUserId_ExpiresAtUtc");
-
-            entity.HasIndex(e => new { e.AuthUserId, e.RevokedAtUtc }, "IX_AuthRefreshTokens_AuthUserId_RevokedAtUtc");
-
-            entity.HasIndex(e => e.TokenHash, "UX_AuthRefreshTokens_TokenHash").IsUnique();
-
             entity.Property(e => e.RefreshTokenId).ValueGeneratedNever();
             entity.Property(e => e.CreatedAtUtc)
                 .HasPrecision(0)
@@ -102,11 +102,8 @@ public partial class ApplicationDbContext : DbContext
 
             entity.HasOne(d => d.AuthUser).WithMany(p => p.AuthRefreshTokens)
                 .HasForeignKey(d => d.AuthUserId)
-                .HasConstraintName("FK_AuthRefreshTokens_AuthUsers");
-
-            entity.HasOne(d => d.ReplacedByRefreshToken).WithMany(p => p.InverseReplacedByRefreshToken)
-                .HasForeignKey(d => d.ReplacedByRefreshTokenId)
-                .HasConstraintName("FK_AuthRefreshTokens_ReplacedBy");
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_AuthRefreshTokens_EntityEmail");
         });
 
         modelBuilder.Entity<AuthRole>(entity =>
@@ -119,28 +116,6 @@ public partial class ApplicationDbContext : DbContext
                 .HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.Name).HasMaxLength(128);
             entity.Property(e => e.NormalizedName).HasMaxLength(128);
-        });
-
-        modelBuilder.Entity<AuthUser>(entity =>
-        {
-            entity.HasIndex(e => e.NormalizedEmail, "UX_AuthUsers_NormalizedEmail").IsUnique();
-
-            entity.Property(e => e.AuthUserId).ValueGeneratedNever();
-            entity.Property(e => e.CreatedAtUtc)
-                .HasPrecision(0)
-                .HasDefaultValueSql("(sysutcdatetime())");
-            entity.Property(e => e.Email).HasMaxLength(320);
-            entity.Property(e => e.IsActive).HasDefaultValue(true);
-            entity.Property(e => e.LastLoginAtUtc).HasPrecision(0);
-            entity.Property(e => e.LockoutUntilUtc).HasPrecision(0);
-            entity.Property(e => e.NormalizedEmail).HasMaxLength(320);
-            entity.Property(e => e.PasswordChangedAtUtc).HasPrecision(0);
-            entity.Property(e => e.RowVersion)
-                .IsRowVersion()
-                .IsConcurrencyToken();
-            entity.Property(e => e.UpdatedAtUtc)
-                .HasPrecision(0)
-                .HasDefaultValueSql("(sysutcdatetime())");
         });
 
         modelBuilder.Entity<BankAccount>(entity =>
@@ -223,12 +198,35 @@ public partial class ApplicationDbContext : DbContext
                 .HasConstraintName("FK_Charity_Entity");
         });
 
+        modelBuilder.Entity<EmailTemplate>(entity =>
+        {
+            entity.HasKey(e => e.TemplateId);
+
+            entity.ToTable(tb => tb.HasTrigger("trg_EmailTemplates_UpdateTimestamp"));
+
+            entity.HasIndex(e => e.TemplateKey, "UQ_EmailTemplates_TemplateKey").IsUnique();
+
+            entity.Property(e => e.TemplateId).HasDefaultValueSql("(newsequentialid())");
+            entity.Property(e => e.CreatedAtUtc)
+                .HasPrecision(0)
+                .HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.Description).HasMaxLength(400);
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.IsHtml).HasDefaultValue(true);
+            entity.Property(e => e.SubjectTemplate).HasMaxLength(300);
+            entity.Property(e => e.TemplateKey).HasMaxLength(100);
+            entity.Property(e => e.TemplateType).HasMaxLength(50);
+            entity.Property(e => e.UpdatedAtUtc)
+                .HasPrecision(0)
+                .HasDefaultValueSql("(sysutcdatetime())");
+        });
+
         modelBuilder.Entity<Entity>(entity =>
         {
             entity.ToTable("Entity");
 
             entity.Property(e => e.Id)
-                .HasDefaultValueSql("(1())")
+                .HasDefaultValueSql("(newsequentialid())")
                 .HasColumnName("ID");
             entity.Property(e => e.Irdnumber)
                 .HasMaxLength(12)
@@ -414,6 +412,39 @@ public partial class ApplicationDbContext : DbContext
                 .HasConstraintName("FK_EntityRole_Role");
         });
 
+        modelBuilder.Entity<GlobalConfig>(entity =>
+        {
+            entity.ToTable("GlobalConfig", tb => tb.HasTrigger("trg_GlobalConfig_UpdateTimestamp"));
+
+            entity.HasIndex(e => e.Key, "UQ_GlobalConfig_Key").IsUnique();
+
+            entity.Property(e => e.Id).HasDefaultValueSql("(newsequentialid())");
+            entity.Property(e => e.CreatedAtUtc).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.Key).HasMaxLength(150);
+            entity.Property(e => e.KeyGroup).HasMaxLength(100);
+            entity.Property(e => e.UpdatedAtUtc).HasDefaultValueSql("(sysutcdatetime())");
+        });
+
+        modelBuilder.Entity<GmailOauthConfig>(entity =>
+        {
+            entity.HasKey(e => e.GmailConfigId);
+
+            entity.ToTable("GmailOAuthConfigs", tb => tb.HasTrigger("trg_GmailOAuthConfigs_UpdateTimestamp"));
+
+            entity.Property(e => e.GmailConfigId).HasDefaultValueSql("(newsequentialid())");
+            entity.Property(e => e.AccessToken).HasMaxLength(2000);
+            entity.Property(e => e.AccessTokenExpiresAtUtc).HasPrecision(0);
+            entity.Property(e => e.ClientId).HasMaxLength(300);
+            entity.Property(e => e.ClientSecret).HasMaxLength(300);
+            entity.Property(e => e.CreatedAtUtc)
+                .HasPrecision(0)
+                .HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.RefreshToken).HasMaxLength(1000);
+            entity.Property(e => e.UpdatedAtUtc)
+                .HasPrecision(0)
+                .HasDefaultValueSql("(sysutcdatetime())");
+        });
+
         modelBuilder.Entity<Group>(entity =>
         {
             entity.ToTable("Group");
@@ -444,6 +475,27 @@ public partial class ApplicationDbContext : DbContext
                 .HasForeignKey<Individual>(d => d.Id)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Individual_Entity");
+        });
+
+        modelBuilder.Entity<MsGraphOauthConfig>(entity =>
+        {
+            entity.HasKey(e => e.MsGraphConfigId);
+
+            entity.ToTable("MsGraphOAuthConfigs", tb => tb.HasTrigger("trg_MsGraphOAuthConfigs_UpdateTimestamp"));
+
+            entity.Property(e => e.MsGraphConfigId).HasDefaultValueSql("(newsequentialid())");
+            entity.Property(e => e.AccessToken).HasMaxLength(2000);
+            entity.Property(e => e.AccessTokenExpiresAtUtc).HasPrecision(0);
+            entity.Property(e => e.ClientId).HasMaxLength(300);
+            entity.Property(e => e.ClientSecret).HasMaxLength(300);
+            entity.Property(e => e.CreatedAtUtc)
+                .HasPrecision(0)
+                .HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.RefreshToken).HasMaxLength(1000);
+            entity.Property(e => e.TenantId).HasMaxLength(100);
+            entity.Property(e => e.UpdatedAtUtc)
+                .HasPrecision(0)
+                .HasDefaultValueSql("(sysutcdatetime())");
         });
 
         modelBuilder.Entity<OtpRecord>(entity =>

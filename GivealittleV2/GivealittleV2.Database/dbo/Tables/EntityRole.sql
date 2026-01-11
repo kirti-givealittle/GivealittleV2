@@ -1,0 +1,9 @@
+﻿CREATE TABLE [dbo].[EntityRole] (
+    [ID]       UNIQUEIDENTIFIER NOT NULL,
+    [RoleID]   UNIQUEIDENTIFIER NOT NULL,
+    [EntityID] UNIQUEIDENTIFIER NOT NULL,
+    CONSTRAINT [PK_EntityRole] PRIMARY KEY CLUSTERED ([ID] ASC),
+    CONSTRAINT [FK_EntityRole_Entity] FOREIGN KEY ([EntityID]) REFERENCES [dbo].[Entity] ([ID]),
+    CONSTRAINT [FK_EntityRole_Role] FOREIGN KEY ([RoleID]) REFERENCES [dbo].[Role] ([ID])
+);
+

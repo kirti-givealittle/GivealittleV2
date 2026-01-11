@@ -1,0 +1,3 @@
+﻿CREATE LOGIN [GAL-011\x_visalk]
+    FROM WINDOWS WITH DEFAULT_LANGUAGE = [us_english];
+

@@ -4,6 +4,7 @@ using GivealittleV2.Application.Interfaces.OTP;
 using GivealittleV2.Domain.Models.Auth.DTOs;
 using GivealittleV2.Infrastructure.Persistence.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking.Internal;
 using Microsoft.Extensions.Configuration;
 using System.Security.Cryptography;
 
@@ -56,7 +57,8 @@ namespace GivealittleV2.Infrastructure.Repositories.Auth
 
             await _db.SaveChangesAsync();
 
-            await otpService.CreateAndSendAsync(req.Email, req.FName, OtpPurpose.Registration);
+            await otpService.GenerateAndSendTokenEmail(req.Email, req.FName, OtpPurpose.Registration);
+            //await otpService.CreateAndSendAsync(req.Email, req.FName, OtpPurpose.Registration);
 
             return new AuthResponseDTO(
                 UserId: entity.Id,
@@ -80,7 +82,7 @@ namespace GivealittleV2.Infrastructure.Repositories.Auth
                     .Where(i =>
                      i.IdNavigation != null &&
                      i.IdNavigation.EntityEmails
-                        .Any(em => em.EmailAddress.ToLower() == req.Email.Trim().ToLower()) == true ||
+                        .Any(em => em.EmailAddress.ToLower() == req.Email.Trim().ToLower()) == true &&
                     i.FirstName == req.FName.Trim() &&
                     i.LastName == req.LName.Trim())
                     .FirstOrDefault();
@@ -109,61 +111,68 @@ namespace GivealittleV2.Infrastructure.Repositories.Auth
 
         public async Task<AuthResponseDTO> LoginUserAsync(LoginRequestDTO req, string? ip, string? ua)
         {
-            var email = req.Email.Trim();
-            var normalized = email.ToUpperInvariant();
-
-            var user = await _db.AuthUsers.SingleOrDefaultAsync(u => u.NormalizedEmail == normalized);
+            var user = _db.Individuals
+                    .Where(i =>
+                     i.IdNavigation != null &&
+                     i.IdNavigation.EntityEmails
+                        .Any(em => em.EmailAddress.ToLower() == req.Email.Trim().ToLower()) == true)
+                    .FirstOrDefault();
 
             if (user == null)
             {
-                await AddAuditAsync(null, email, false, "LOGIN", "USER_NOT_FOUND", ip, ua);
+                await AddAuditAsync(null, req.Email, false, "LOGIN", "USER_NOT_FOUND", ip, ua);
                 throw new InvalidOperationException("Invalid credentials.");
             }
 
-            if (!user.IsActive)
+            await otpService.CreateAndSendAsync(req.Email, user.FirstName, OtpPurpose.Login);
+
+            return new AuthResponseDTO(
+                UserId: user.Id,
+                AccessToken: "",
+                AccessTokenExpiresAtUtc: DateTime.MinValue,
+                RefreshToken: "",
+                FName: user.FirstName,
+                LName: user.LastName,
+                Emails: user.IdNavigation?.EntityEmails
+                    .Select(em => em.EmailAddress)
+                    .ToList() ?? new List<string>(),
+                IsExistingUser: true
+            );
+
+            
+
+            
+        }
+
+        public async Task<AuthResponseDTO> LoginVerifyAsync(LoginVerifyOtpDTO req, string? ip, string? ua)
+        {
+            var user = _db.Individuals
+            .Where(i =>
+                i.IdNavigation != null &&
+                i.IdNavigation.EntityEmails
+                    .Any(em => em.EmailAddress.ToLower() == req.userEmail.Trim().ToLower()) == true)
+                    .FirstOrDefault();
+            if (user == null)
             {
-                await AddAuditAsync(user.AuthUserId, email, false, "LOGIN", "USER_INACTIVE", ip, ua);
-                throw new InvalidOperationException("User is inactive.");
-            }
-
-            if (user.LockoutUntilUtc != null && user.LockoutUntilUtc > DateTime.UtcNow)
-            {
-                await AddAuditAsync(user.AuthUserId, email, false, "LOGIN", "USER_LOCKED", ip, ua);
-                throw new InvalidOperationException("User is locked. Try later.");
-            }
-
-            //var ok = _passwords.Verify(email, user.PasswordHash, req.Password);
-            var ok = true; // Password checking is disabled for now
-
-            if (!ok)
-            {
-                user.FailedAccessCount += 1;
-
-                // lockout policy: 5 attempts -> 10 minutes lock
-                if (user.FailedAccessCount >= 5)
-                {
-                    user.LockoutUntilUtc = DateTime.UtcNow.AddMinutes(10);
-                    user.FailedAccessCount = 0;
-                }
-
-                user.UpdatedAtUtc = DateTime.UtcNow;
-
-                await AddAuditAsync(user.AuthUserId, email, false, "LOGIN", "INVALID_PASSWORD", ip, ua);
-                await _db.SaveChangesAsync();
-
+                await AddAuditAsync(null, req.userEmail, false, "LOGIN", "USER_NOT_FOUND", ip, ua);
                 throw new InvalidOperationException("Invalid credentials.");
             }
 
-            // success
-            user.FailedAccessCount = 0;
-            user.LockoutUntilUtc = null;
-            user.LastLoginAtUtc = DateTime.UtcNow;
-            user.UpdatedAtUtc = DateTime.UtcNow;
+            var otpVerificationResult = await otpService.ValidateAsync(req.userEmail, OtpPurpose.Login, req.OTP);
+            if (!otpVerificationResult.IsValid)
+            {
+                await AddAuditAsync(user.Id, req.userEmail, false, "LOGIN", "INVALID_OTP", ip, ua);
+                throw new InvalidOperationException("Invalid OTP.");
+            }
+            return await GrantLogin(user, req.userEmail, ip, ua);
+        }
 
-            await AddAuditAsync(user.AuthUserId, email, true, "LOGIN", null, ip, ua);
+        private async Task<AuthResponseDTO> GrantLogin(Individual user, string email, string ip, string ua)
+        {
+            await AddAuditAsync(user.Id, email, true, "LOGIN", null, ip, ua);
             await _db.SaveChangesAsync();
 
-            return await IssueTokensAsync(user, ip, ua);
+            return await IssueTokensAsync(user, email, ip, ua);
         }
 
         private Task AddAuditAsync(Guid? authUserId, string? email, bool success, string eventType, string? reason, string? ip, string? ua)
@@ -183,19 +192,20 @@ namespace GivealittleV2.Infrastructure.Repositories.Auth
             return Task.CompletedTask;
         }
 
-        private async Task<AuthResponseDTO> IssueTokensAsync(AuthUser user, string? ip, string? ua)
+        private async Task<AuthResponseDTO> IssueTokensAsync(Individual user, string email, string? ip, string? ua)
         {
-            var roles = await GetRolesAsync(user.AuthUserId);
+            //var roles = await GetRolesAsync(user.Id);
 
-            var (access, accessExp) = _tokens.CreateAccessToken(user.AuthUserId, user.Email, roles);
+            var (accessToken, accessTokenExp) = _tokens.CreateAccessToken(user.Id, email, new List<string>() { "user"});
 
             var refreshDays = int.Parse(_config["Jwt:RefreshTokenDays"]!);
             var (raw, hash, refreshExp) = _tokens.CreateRefreshToken(refreshDays);
 
+
             var rt = new AuthRefreshToken
             {
                 RefreshTokenId = Guid.NewGuid(),
-                AuthUserId = user.AuthUserId,
+                AuthUserId = _db.EntityEmails.Where(x => x.EmailAddress == email).Select(x => (Guid?)x.Id).FirstOrDefault() ?? Guid.Empty,
                 TokenHash = hash,
                 CreatedAtUtc = DateTime.UtcNow,
                 ExpiresAtUtc = refreshExp,
@@ -206,8 +216,16 @@ namespace GivealittleV2.Infrastructure.Repositories.Auth
             _db.AuthRefreshTokens.Add(rt);
             await _db.SaveChangesAsync();
 
-            //return new AuthResponse(access, accessExp, raw);
-            return null;
+            return new AuthResponseDTO(
+                accessToken,
+                accessTokenExp,
+                raw,
+                user.FirstName,
+                user.LastName,
+                _db.EntityEmails.Where(x => x.EmailAddress == email).Select(em => em.EmailAddress).ToList(),
+                true,
+                user.Id
+            );
         }
 
         private async Task<List<string>> GetRolesAsync(Guid authUserId)
@@ -232,9 +250,12 @@ namespace GivealittleV2.Infrastructure.Repositories.Auth
                 await AddAuditAsync(null, null, false, "REFRESH", "INVALID_REFRESH", ip, ua);
                 throw new InvalidOperationException("Invalid refresh token.");
             }
-
-            var user = await _db.AuthUsers.SingleAsync(u => u.AuthUserId == existing.AuthUserId);
-
+            var user = await _db.EntityEmails.SingleOrDefaultAsync(x => x.Id == existing.AuthUserId);
+            if (user == null)
+            {
+                await AddAuditAsync(null, "", false, "REFRESH", "USER_NOT_FOUND", ip, ua);
+                throw new InvalidOperationException("User not found for refresh token.");
+            }
             // Rotate refresh token
             var refreshDays = int.Parse(_config["Jwt:RefreshTokenDays"]!);
             var (newRaw, newHash, newExp) = _tokens.CreateRefreshToken(refreshDays);
@@ -242,7 +263,7 @@ namespace GivealittleV2.Infrastructure.Repositories.Auth
             var newRt = new AuthRefreshToken
             {
                 RefreshTokenId = Guid.NewGuid(),
-                AuthUserId = user.AuthUserId,
+                AuthUserId = user.Id,
                 TokenHash = newHash,
                 CreatedAtUtc = DateTime.UtcNow,
                 ExpiresAtUtc = newExp,
@@ -255,14 +276,13 @@ namespace GivealittleV2.Infrastructure.Repositories.Auth
 
             _db.AuthRefreshTokens.Add(newRt);
 
-            await AddAuditAsync(user.AuthUserId, user.Email, true, "REFRESH", null, ip, ua);
+            await AddAuditAsync(user.Id, user.EmailAddress, true, "REFRESH", null, ip, ua);
             await _db.SaveChangesAsync();
 
-            var roles = await GetRolesAsync(user.AuthUserId);
-            var (jwt, jwtExp) = _tokens.CreateAccessToken(user.AuthUserId, user.Email, roles);
+            var roles = await GetRolesAsync(user.Id);
+            var (jwt, jwtExp) = _tokens.CreateAccessToken(user.Id, user.EmailAddress, roles);
 
-            //return new AuthResponse(jwt, jwtExp, newRaw);
-            return null;
+            return new AuthResponseDTO(jwt, jwtExp, newRaw,"","",new List<string>(), true, user.Id);
         }
 
         public async Task LogoutUserAsync(string refreshToken, string? ip, string? ua)

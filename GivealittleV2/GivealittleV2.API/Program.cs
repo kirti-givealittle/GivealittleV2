@@ -7,6 +7,7 @@ using GivealittleV2.Domain.Models.Email;
 using GivealittleV2.Domain.Models.OTP;
 using GivealittleV2.Infrastructure.Persistence.Models;
 using GivealittleV2.Infrastructure.Repositories.Auth;
+using GivealittleV2.Infrastructure.Repositories.Email;
 using GivealittleV2.Infrastructure.Repositories.OTP;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -29,8 +30,6 @@ if (string.IsNullOrEmpty(connectionString))
 }
 builder.Services.AddDbContext<ApplicationDbContext>(o => o.UseSqlServer(connectionString));
 
-builder.Services.Configure<EmailSettings>(
-    builder.Configuration.GetSection("EmailSettings"));
 
 builder.Services
     .AddOptions<OtpOptions>()
@@ -39,10 +38,10 @@ builder.Services
         "OtpOptions.Pepper must be configured")
     .ValidateOnStart();
 
-builder.Services.AddScoped<IEmailService, SmtpEmailService>();
-builder.Services.AddScoped<IEmailTemplateRenderer, FileEmailTemplateRenderer>();
+builder.Services.AddScoped<IEmailTemplateRenderer, TokensToEmailTemplateRenderer>();
 builder.Services.AddScoped<IOtpRepository, OtpRepository>();
 builder.Services.AddScoped<IOtpService, OtpService>();
+builder.Services.AddScoped<IEmailDtoProvider, EmailDtoProvider>();
 
 
 
@@ -75,6 +74,18 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 
 builder.Services.AddSingleton<ITokenService, TokenService>();
+
+builder.Services.AddScoped<IOtpService, OtpService>();
+builder.Services.AddScoped<IOtpRepository, OtpRepository>();
+
+
+builder.Services.AddScoped<IEmailProviderSender, GmailApiEmailProviderSender>();
+builder.Services.AddHttpClient<MsGraphEmailProviderSender>();
+builder.Services.AddScoped<IEmailProviderSender>(sp => sp.GetRequiredService<MsGraphEmailProviderSender>());
+
+builder.Services.AddScoped<IEmailSender, EmailSender>();
+builder.Services.AddSingleton<IEmailTemplateRenderer, TokensToEmailTemplateRenderer>();
+
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>

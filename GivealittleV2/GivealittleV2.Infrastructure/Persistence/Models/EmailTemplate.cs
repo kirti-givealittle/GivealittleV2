@@ -5,7 +5,7 @@ namespace GivealittleV2.Infrastructure.Persistence.Models;
 
 public partial class EmailTemplate
 {
-    public int EmailTemplateId { get; set; }
+    public Guid TemplateId { get; set; }
 
     public string TemplateKey { get; set; } = null!;
 
@@ -18,6 +18,8 @@ public partial class EmailTemplate
     public bool IsHtml { get; set; }
 
     public bool IsActive { get; set; }
+
+    public string? Description { get; set; }
 
     public DateTime CreatedAtUtc { get; set; }
 

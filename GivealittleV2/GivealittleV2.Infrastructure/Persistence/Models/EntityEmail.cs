@@ -13,5 +13,9 @@ public partial class EntityEmail
 
     public Guid EntityId { get; set; }
 
+    public bool IsVerified { get; set; }
+
+    public virtual ICollection<AuthRefreshToken> AuthRefreshTokens { get; set; } = new List<AuthRefreshToken>();
+
     public virtual Entity Entity { get; set; } = null!;
 }

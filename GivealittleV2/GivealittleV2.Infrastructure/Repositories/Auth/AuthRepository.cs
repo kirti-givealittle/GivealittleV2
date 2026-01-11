@@ -61,6 +61,7 @@ namespace GivealittleV2.Infrastructure.Repositories.Auth
             //await otpService.CreateAndSendAsync(req.Email, req.FName, OtpPurpose.Registration);
 
             return new AuthResponseDTO(
+                Success: true,
                 UserId: entity.Id,
                 AccessToken: "",
                 AccessTokenExpiresAtUtc: DateTime.MinValue,
@@ -78,28 +79,23 @@ namespace GivealittleV2.Infrastructure.Repositories.Auth
             if (!string.IsNullOrEmpty(req.FName) &&
                 !string.IsNullOrEmpty(req.LName) && !string.IsNullOrEmpty(req.Email))
             {
-                var existing = _db.Individuals
-                    .Where(i =>
-                     i.IdNavigation != null &&
-                     i.IdNavigation.EntityEmails
-                        .Any(em => em.EmailAddress.ToLower() == req.Email.Trim().ToLower()) == true &&
-                    i.FirstName == req.FName.Trim() &&
-                    i.LastName == req.LName.Trim())
+                var existing = _db.Entities.Where(e =>
+                        e.EntityEmails.Any(em => em.EmailAddress.ToLower() == req.Email.Trim().ToLower()))
                     .FirstOrDefault();
+
 
 
                 if (existing != null)
                 {
                     return new AuthResponseDTO(
+                        Success: false,
                         UserId: existing.Id,
                         AccessToken: "",
                         AccessTokenExpiresAtUtc: DateTime.MinValue,
                         RefreshToken: "",
-                        FName: existing.FirstName,
-                        LName: existing.LastName,
-                        Emails: existing.IdNavigation?.EntityEmails
-                            .Select(em => em.EmailAddress)
-                            .ToList() ?? new List<string>(),
+                        FName: existing.Individual?.FirstName ?? "",
+                        LName: existing.Individual?.LastName ?? "",
+                        Emails: existing.EntityEmails.Select(x => x.EmailAddress).ToList(),
                         IsExistingUser: true
                     );
                 }
@@ -127,6 +123,7 @@ namespace GivealittleV2.Infrastructure.Repositories.Auth
             await otpService.CreateAndSendAsync(req.Email, user.FirstName, OtpPurpose.Login);
 
             return new AuthResponseDTO(
+                Success: true,
                 UserId: user.Id,
                 AccessToken: "",
                 AccessTokenExpiresAtUtc: DateTime.MinValue,
@@ -217,6 +214,7 @@ namespace GivealittleV2.Infrastructure.Repositories.Auth
             await _db.SaveChangesAsync();
 
             return new AuthResponseDTO(
+                Success: true,
                 accessToken,
                 accessTokenExp,
                 raw,
@@ -282,7 +280,7 @@ namespace GivealittleV2.Infrastructure.Repositories.Auth
             var roles = await GetRolesAsync(user.Id);
             var (jwt, jwtExp) = _tokens.CreateAccessToken(user.Id, user.EmailAddress, roles);
 
-            return new AuthResponseDTO(jwt, jwtExp, newRaw,"","",new List<string>(), true, user.Id);
+            return new AuthResponseDTO(true,jwt, jwtExp, newRaw,"","",new List<string>(), true, user.Id);
         }
 
         public async Task LogoutUserAsync(string refreshToken, string? ip, string? ua)

@@ -21,6 +21,7 @@ namespace GivealittleV2.API.Controllers.Auth
         {
             try
             {
+                
                 return Ok(await _auth.RegisterAsync(req, Ip, UA));
             }
             catch (Exception ex)

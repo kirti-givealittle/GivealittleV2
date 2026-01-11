@@ -39,7 +39,7 @@ namespace GivealittleV2.Infrastructure.Repositories.OTP
                 {
                     if (existing.NextResendAllowedAtUtc.HasValue && existing.NextResendAllowedAtUtc.Value > now)
                     {
-                        return new OtpCreateResult(existing.Id, existing.ExpiresAtUtc, existing.NextResendAllowedAtUtc);
+                        return new OtpCreateResult(true,existing.Id, existing.ExpiresAtUtc, existing.NextResendAllowedAtUtc);
                     }
                 }
             }
@@ -78,7 +78,7 @@ namespace GivealittleV2.Infrastructure.Repositories.OTP
                     )));
             await _sender.SendAsync(req);
 
-            return new OtpCreateResult(record.Id, record.ExpiresAtUtc, record.NextResendAllowedAtUtc);
+            return new OtpCreateResult(true, record.Id, record.ExpiresAtUtc, record.NextResendAllowedAtUtc);
         }
 
         private string GetEmailTemplateKey(OtpPurpose purpose)

@@ -9,6 +9,5 @@ namespace GivealittleV2.Domain.Models.OTP.DTOs
     public class OtpLoginResendDTO
     {
         public string userEmail { get; set; } = string.Empty;
-        public string userFName { get; set; } = string.Empty;
     }
 }

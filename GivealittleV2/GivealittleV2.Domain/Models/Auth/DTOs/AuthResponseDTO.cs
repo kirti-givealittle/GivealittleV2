@@ -1,4 +1,5 @@
 ﻿public record AuthResponseDTO(
+    bool Success,
     string AccessToken, 
     DateTime AccessTokenExpiresAtUtc, 
     string RefreshToken,

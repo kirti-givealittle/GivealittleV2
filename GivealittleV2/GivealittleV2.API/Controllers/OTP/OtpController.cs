@@ -45,7 +45,7 @@ namespace GivealittleV2.API.Controllers.OTP
         {
             try
             {
-                var verificationResult = await _otpService.CreateAndSendAsync(otpResendDTP.userEmail, otpResendDTP.userFName, OtpPurpose.Login);
+                var verificationResult = await _otpService.CreateAndSendAsync(otpResendDTP.userEmail, otpResendDTP.userEmail, OtpPurpose.Login);
                 var json = System.Text.Json.JsonSerializer.Serialize(verificationResult);
                 return Content(json, "application/json; charset=utf-8");
             }

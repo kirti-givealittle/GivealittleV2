@@ -1,0 +1,22 @@
+trigger:
+- GAL-1871-new_application_prototype
+
+pool:
+  vmImage: 'windows-latest'
+
+variables:
+  DB_CONNECTION: 'Server=givealittlev2-dbserver.database.windows.net;Authentication=Active Directory Default;Database=myappdb'
+
+steps:
+- task: UseDotNet@2
+  inputs:
+    packageType: 'sdk'
+    version: '8.x'
+
+- script: |
+    cd GivealittleV2.DbMigrator
+    dotnet restore
+    dotnet run
+  env:
+    DB_CONNECTION: $(DB_CONNECTION)
+  displayName: 'Run DB Migrations'

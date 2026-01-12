@@ -1,0 +1,88 @@
+10/01/2026 11:40:05 pm	This log contains information about the import schema operation into project 'GivealittleV2.Database' on computer 'GAL-011' by user 'x_visalk'.
+10/01/2026 11:40:06 pm	Import of database schema has started.
+10/01/2026 11:40:33 pm	Gathering database credentials
+10/01/2026 11:40:33 pm	Gathering database options
+10/01/2026 11:40:33 pm	Gathering generic database scoped configuration option
+10/01/2026 11:40:33 pm	Gathering users
+10/01/2026 11:40:33 pm	Gathering roles
+10/01/2026 11:40:33 pm	Gathering application roles
+10/01/2026 11:40:33 pm	Gathering role memberships
+10/01/2026 11:40:33 pm	Gathering filegroups
+10/01/2026 11:40:33 pm	Gathering full-text catalogs
+10/01/2026 11:40:33 pm	Gathering assemblies
+10/01/2026 11:40:33 pm	Gathering certificates
+10/01/2026 11:40:33 pm	Gathering asymmetric keys
+10/01/2026 11:40:33 pm	Gathering symmetric keys
+10/01/2026 11:40:33 pm	Gathering encrypted symmetric keys
+10/01/2026 11:40:33 pm	Gathering schemas
+10/01/2026 11:40:33 pm	Gathering XML schema collections
+10/01/2026 11:40:33 pm	Gathering user-defined data types
+10/01/2026 11:40:33 pm	Gathering user-defined types
+10/01/2026 11:40:33 pm	Gathering table types
+10/01/2026 11:40:33 pm	Gathering unique keys for table types
+10/01/2026 11:40:33 pm	Gathering primary keys for table types
+10/01/2026 11:40:34 pm	Gathering indexes for table types
+10/01/2026 11:40:34 pm	Gathering check constraints for table types
+10/01/2026 11:40:34 pm	Gathering default constraints for table types
+10/01/2026 11:40:34 pm	Gathering partition functions
+10/01/2026 11:40:34 pm	Gathering partition schemes
+10/01/2026 11:40:34 pm	Gathering functions
+10/01/2026 11:40:34 pm	Gathering encrypted functions
+10/01/2026 11:40:34 pm	Gathering aggregates
+10/01/2026 11:40:34 pm	Gathering procedures
+10/01/2026 11:40:34 pm	Gathering encrypted procedures
+10/01/2026 11:40:34 pm	Gathering tables
+10/01/2026 11:40:34 pm	Gathering primary keys
+10/01/2026 11:40:34 pm	Gathering unique constraints
+10/01/2026 11:40:34 pm	Gathering foreign keys
+10/01/2026 11:40:34 pm	Gathering default constraints
+10/01/2026 11:40:34 pm	Gathering check constraints
+10/01/2026 11:40:34 pm	Gathering views
+10/01/2026 11:40:34 pm	Gathering encrypted views
+10/01/2026 11:40:34 pm	Gathering indexes
+10/01/2026 11:40:34 pm	Gathering statistics
+10/01/2026 11:40:34 pm	Gathering full-text index stoplists
+10/01/2026 11:40:34 pm	Gathering search property lists
+10/01/2026 11:40:34 pm	Gathering search properties
+10/01/2026 11:40:34 pm	Gathering full-text indexes
+10/01/2026 11:40:34 pm	Gathering column store indexes
+10/01/2026 11:40:34 pm	Gathering spatial indexes
+10/01/2026 11:40:34 pm	Gathering XML indexes
+10/01/2026 11:40:34 pm	Gathering Selective XML indexes
+10/01/2026 11:40:34 pm	Gathering encrypted triggers
+10/01/2026 11:40:34 pm	Gathering triggers
+10/01/2026 11:40:35 pm	Gathering encrypted and clr ddl triggers
+10/01/2026 11:40:35 pm	Gathering ddl triggers
+10/01/2026 11:40:35 pm	Creating edge constraints
+10/01/2026 11:40:35 pm	Gathering synonyms
+10/01/2026 11:40:35 pm	Gathering defaults
+10/01/2026 11:40:35 pm	Gathering data constraint uddt bindings
+10/01/2026 11:40:35 pm	Gathering rules
+10/01/2026 11:40:35 pm	Gathering data constraint uddt bindings
+10/01/2026 11:40:35 pm	Gathering message types
+10/01/2026 11:40:35 pm	Gathering queues
+10/01/2026 11:40:35 pm	Gathering contracts
+10/01/2026 11:40:35 pm	Gathering services
+10/01/2026 11:40:35 pm	Gathering event notifications
+10/01/2026 11:40:35 pm	Gathering remote service bindings
+10/01/2026 11:40:35 pm	Gathering broker priorities
+10/01/2026 11:40:35 pm	Gathering signatures
+10/01/2026 11:40:35 pm	Gathering compression options
+10/01/2026 11:40:35 pm	Gathering sequence types
+10/01/2026 11:40:35 pm	Gathering security policies
+10/01/2026 11:40:35 pm	Gather column encryption keys
+10/01/2026 11:40:35 pm	Gathering column master keys
+10/01/2026 11:40:35 pm	Gathering external data sources
+10/01/2026 11:40:35 pm	Gathering external file formats
+10/01/2026 11:40:35 pm	Gathering external tables
+10/01/2026 11:40:35 pm	Gathering XML index compression options
+10/01/2026 11:40:35 pm	Gathering extended properties
+10/01/2026 11:40:35 pm	Gathering assemblies
+10/01/2026 11:40:35 pm	Gathering credentials
+10/01/2026 11:40:35 pm	Gathering logins
+10/01/2026 11:40:35 pm	Gathering server audits
+10/01/2026 11:40:37 pm	Scanning project for duplicate elements
+10/01/2026 11:40:37 pm	Finished duplicate element processing
+10/01/2026 11:40:38 pm	Finished importing database.
+10/01/2026 11:40:38 pm	A summary of the import was saved to the following location: C:\Visal Projects\GiveALittleV2\GivealittleV2\GivealittleV2\GivealittleV2.Database\Import Schema Logs\GivealittleV2.Databa_20260110104005.log
+10/01/2026 11:40:38 pm	Click Finish to continue...
